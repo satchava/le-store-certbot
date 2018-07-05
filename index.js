@@ -20,6 +20,7 @@ var path = require('path');
 var fs = require('fs');
 var readFileAsync = util.promisify(fs.readFile);
 var readdirAsync = util.promisify(fs.readdir);
+var statAsync = util.promisify(fs.stat);
 var sfs = require('safe-replace');
 var os = require('os');
 var symlink = require('fs-symlink');
@@ -193,7 +194,7 @@ module.exports.create = function (configs) {
             key = keypair.privateKeyPem;
           }
 
-          return fs.writeFileAsync(keypath, key, 'ascii').then(function () {
+          return sfs.writeFileAsync(keypath, key, 'ascii').then(function () {
             return keypair;
           });
         });
@@ -230,7 +231,7 @@ module.exports.create = function (configs) {
         , readFileAsync(args.chainPath, 'ascii')     // 2
 
           // stat the file, not the link
-        , fs.statAsync(args.certPath)                   // 3
+        , statAsync(args.certPath)                   // 3
         ]).then(function (arr) {
           return {
             privkey: arr[0]                       // privkey.pem
@@ -516,9 +517,9 @@ module.exports.create = function (configs) {
           // TODO abstract file writing
           return PromiseA.all([
             // meta.json {"creation_host": "ns1.redirect-www.org", "creation_dt": "2015-12-11T04:14:38Z"}
-            fs.writeFileAsync(path.join(accountDir, 'meta.json'), JSON.stringify(accountMeta), 'utf8')
+            sfs.writeFileAsync(path.join(accountDir, 'meta.json'), JSON.stringify(accountMeta), 'utf8')
             // private_key.json { "e", "d", "n", "q", "p", "kty", "qi", "dp", "dq" }
-          , fs.writeFileAsync(path.join(accountDir, 'private_key.json'), JSON.stringify(reg.keypair.privateKeyJwk), 'utf8')
+          , sfs.writeFileAsync(path.join(accountDir, 'private_key.json'), JSON.stringify(reg.keypair.privateKeyJwk), 'utf8')
             // regr.json:
             /*
             { body: { contact: [ 'mailto:coolaj86@gmail.com' ],
@@ -528,7 +529,7 @@ module.exports.create = function (configs) {
               new_authzr_uri: 'https://acme-v01.api.letsencrypt.org/acme/new-authz',
               terms_of_service: 'https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf' }
              */
-          , fs.writeFileAsync(path.join(accountDir, 'regr.json'),
+          , sfs.writeFileAsync(path.join(accountDir, 'regr.json'),
                               JSON.stringify(regrBody),
                               'utf8')
           ]);
