@@ -20,6 +20,7 @@ var path = require('path');
 var fs = require('fs');
 var readFileAsync = util.promisify(fs.readFile);
 var readdirAsync = util.promisify(fs.readdir);
+var writeFileAsync = util.promisify(fs.writeFile);
 var statAsync = util.promisify(fs.stat);
 var sfs = require('safe-replace');
 var os = require('os');
@@ -194,7 +195,7 @@ module.exports.create = function (configs) {
             key = keypair.privateKeyPem;
           }
 
-          return sfs.writeFileAsync(keypath, key, 'ascii').then(function () {
+          return writeFileAsync(keypath, key, 'ascii').then(function () {
             return keypair;
           });
         });
@@ -517,9 +518,9 @@ module.exports.create = function (configs) {
           // TODO abstract file writing
           return PromiseA.all([
             // meta.json {"creation_host": "ns1.redirect-www.org", "creation_dt": "2015-12-11T04:14:38Z"}
-            sfs.writeFileAsync(path.join(accountDir, 'meta.json'), JSON.stringify(accountMeta), 'utf8')
+            writeFileAsync(path.join(accountDir, 'meta.json'), JSON.stringify(accountMeta), 'utf8')
             // private_key.json { "e", "d", "n", "q", "p", "kty", "qi", "dp", "dq" }
-          , sfs.writeFileAsync(path.join(accountDir, 'private_key.json'), JSON.stringify(reg.keypair.privateKeyJwk), 'utf8')
+          , writeFileAsync(path.join(accountDir, 'private_key.json'), JSON.stringify(reg.keypair.privateKeyJwk), 'utf8')
             // regr.json:
             /*
             { body: { contact: [ 'mailto:coolaj86@gmail.com' ],
@@ -529,7 +530,7 @@ module.exports.create = function (configs) {
               new_authzr_uri: 'https://acme-v01.api.letsencrypt.org/acme/new-authz',
               terms_of_service: 'https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf' }
              */
-          , sfs.writeFileAsync(path.join(accountDir, 'regr.json'),
+          , writeFileAsync(path.join(accountDir, 'regr.json'),
                               JSON.stringify(regrBody),
                               'utf8')
           ]);
