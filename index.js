@@ -24,7 +24,6 @@ var writeFileAsync = util.promisify(fs.writeFile);
 var statAsync = util.promisify(fs.stat);
 var sfs = require('safe-replace');
 var os = require('os');
-var symlink = require('fs-symlink');
 
 function log(debug) {
   if (debug) {
@@ -137,6 +136,7 @@ var defaults = {
 , fullchainPath: [ ':configDir', 'live', ':hostname', 'fullchain.pem' ].join(path.sep)
 , certPath: [ ':configDir', 'live', ':hostname', 'cert.pem' ].join(path.sep)
 , chainPath: [ ':configDir', 'live', ':hostname', 'chain.pem' ].join(path.sep)
+, bundlePath: [ ':configDir', 'live', ':hostname', 'bundle.pem' ].join(path.sep)
 
 , rsaKeySize: 2048
 };
@@ -264,9 +264,8 @@ module.exports.create = function (configs) {
           var certPath = args.certPath || pyobj.cert || path.join(liveDir, 'cert.pem');
           var fullchainPath = args.fullchainPath || pyobj.fullchain || path.join(liveDir, 'fullchain.pem');
           var chainPath = args.chainPath || pyobj.chain || path.join(liveDir, 'chain.pem');
-          var privkeyPath = args.privkeyPath || pyobj.privkey
-            || args.domainKeyPath
-            || path.join(liveDir, 'privkey.pem');
+          var privkeyPath = args.privkeyPath || pyobj.privkey || args.domainKeyPath || path.join(liveDir, 'privkey.pem');
+          var bundlePath = args.bundlePath || pyobj.bundle || path.join(liveDir, 'bundle.pem');
 
           var archiveDir = args.archiveDir || path.join(args.configDir, 'archive', args.domains[0]);
 
@@ -275,6 +274,7 @@ module.exports.create = function (configs) {
           var fullchainArchive = path.join(archiveDir, 'fullchain' + checkpoints + '.pem');
           var chainArchive = path.join(archiveDir, 'chain'+ checkpoints + '.pem');
           var privkeyArchive = path.join(archiveDir, 'privkey' + checkpoints + '.pem');
+          var bundleArchive = path.join(archiveDir, 'bundle' + checkpoints + '.pem');
 
           return mkdirpAsync(archiveDir).then(function () {
             return PromiseA.all([
@@ -282,15 +282,19 @@ module.exports.create = function (configs) {
             , sfs.writeFileAsync(chainArchive, pems.chain, 'ascii')
             , sfs.writeFileAsync(fullchainArchive, [ pems.cert, pems.chain ].join('\n'), 'ascii')
             , sfs.writeFileAsync(privkeyArchive, pems.privkey, 'ascii')
+            , sfs.writeFileAsync(bundleArchive, pems.bundle, 'ascii')
             ]);
           }).then(function () {
             return mkdirpAsync(liveDir);
           }).then(function () {
             return PromiseA.all([
-              symlink(certArchive, certPath)
-            , symlink(chainArchive, chainPath)
-            , symlink(fullchainArchive, fullchainPath)
-            , symlink(privkeyArchive, privkeyPath)
+              sfs.writeFileAsync(certPath, pems.cert, 'ascii')
+            , sfs.writeFileAsync(chainPath, pems.chain, 'ascii')
+              // Most platforms need these two
+            , sfs.writeFileAsync(fullchainPath, [ pems.cert, pems.chain ].join('\n'), 'ascii')
+            , sfs.writeFileAsync(privkeyPath, pems.privkey, 'ascii')
+              // HAProxy needs "bundle.pem" aka "combined.pem"
+            , sfs.writeFileAsync(bundlePath, [ pems.privkey, pems.cert, pems.chain ].join('\n'), 'ascii')
             ]);
           }).then(function () {
             pyobj.checkpoints += 1;
@@ -304,6 +308,8 @@ module.exports.create = function (configs) {
               privkey: pems.privkey
             , cert: pems.cert
             , chain: pems.chain
+            , expires: pems.expires
+            , identifiers: pems.identifiers
 
               /*
               // TODO populate these only if they are actually known
