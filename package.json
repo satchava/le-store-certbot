@@ -1,6 +1,6 @@
 {
   "name": "le-store-certbot",
-  "version": "2.2.2",
+  "version": "2.2.3",
   "description": "The \"certbot\" storage strategy for Greenlock.js",
   "main": "index.js",
   "scripts": {
@@ -27,8 +27,8 @@
     "bluebird": "^3.5.1"
   },
   "dependencies": {
-    "mkdirp": "^0.5.1",
-    "pyconf": "^1.1.5",
-    "safe-replace": "^1.0.3"
+    "@root/mkdirp": "^1.0.0",
+    "pyconf": "^1.1.7",
+    "safe-replace": "^1.1.0"
   }
 }
